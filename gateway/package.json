@@ -1,0 +1,34 @@
+{
+  "dependencies": {
+    "@supabase/supabase-js": "^2.97.0",
+    "axios": "^1.13.5",
+    "bcryptjs": "^2.4.3",
+    "cookie": "^1.1.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "ethers": "^6.16.0",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
+    "joi": "^18.0.2",
+    "jsonwebtoken": "^9.0.3",
+    "pokersolver": "^2.1.4",
+    "socket.io": "^4.8.3",
+    "tronweb": "^6.0.2",
+    "winston": "^3.19.0",
+    "xss": "^1.0.15"
+  },
+  "name": "royal-backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "heartbeat": "DOTENV_PATH=.env node src/jobs/heartbeat.job.js",
+    "test:health": "DOTENV_PATH=.env.tests node scripts/gateway_health_crash_test.js",
+    "test:dup": "MODE=sim DOTENV_PATH=.env.tests node scripts/gateway_dup_and_fake_test.js",
+    "test:e2e": "MODE=sim DOTENV_PATH=.env.tests node scripts/gateway_e2e_sim_and_testnet.js"
+  }
+}

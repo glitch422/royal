@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+  <title>ROYAL - Premium Platform</title>
+
+  <meta name="theme-color" content="#061423" />
+
+  <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            rcNavyBase: "#061423",
+            rcNavyPanel: "#0B223A",
+            rcNavyBorder: "#1a365d",
+            rcGold: "#D4AF37",
+            rcGoldDark: "#b48608",
+            rcGreen: "#10b981",
+            rcRed: "#dc2626",
+            rcSlate: "#64748b",
+            rcSlateLight: "#94a3b8"
+          }
+        }
+      }
+    }
+  </script>
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body class="antialiased min-h-screen flex flex-col overflow-hidden">
+
+  <!-- Casino atmosphere background (cards, suits, chips) -->
+  <div class="bg-poker-suits" aria-hidden="true">
+    <span>♠</span>
+    <span>♥</span>
+    <span>♦</span>
+  </div>
+  <div class="bg-poker-chips" aria-hidden="true">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+
+<div id="app_root" class="w-full h-screen flex-grow flex flex-col relative z-10 overflow-hidden"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
+
+  <!-- Constants / bundles -->
+  <script src="src/constants/enums.js"></script>
+  <script src="src/constants/docsBundled.js"></script>
+
+  <!-- Core helpers -->
+  <script src="js/avatars.js"></script>
+  <script src="js/apiClients.js"></script>
+  <script src="js/royalStore.js"></script>
+
+  <!-- Feature modules -->
+  <script src="js/loginAndRegister.js"></script>
+  <script src="js/documents.js"></script>
+  <script src="js/cryptoCheckout.js"></script>
+<script src="js/userSettings.js"></script>
+
+  <!-- Game & lobbies -->
+  <script src="js/smartLobby.js"></script>
+  <script src="js/waitingLounge.js"></script>
+  <script src="js/pokerTable.js"></script>
+
+  <!-- Dashboards -->
+  <script src="js/dashboardPlayer.js"></script>
+  <script src="js/dashboardAdmin.js"></script>
+  <script src="js/dashboards.js"></script>
+
+  <!-- UI overlays / extra -->
+  <script src="js/floatingActions.js"></script>
+  <script src="js/livePulse.js"></script>
+  <script src="js/reactAdminPanelBridge.js"></script>
+
+  <!-- App boot -->
+  <script src="js/app.js"></script>
+</body>
+</html>
