@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ROYAL - React Admin Live Peek</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            rcNavyBase: "#061423", rcNavyPanel: "#0B223A", rcNavyBorder: "#1a365d",
+            rcGold: "#D4AF37", rcGoldDark: "#b48608", rcGreen: "#10b981",
+            rcRed: "#dc2626", rcSlate: "#64748b", rcSlateLight: "#94a3b8"
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    html, body { height: 100%; background: transparent; }
+    body { margin: 0; }
+    .bg-poker-suits { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.05; filter: blur(0.5px); }
+    .bg-poker-suits span { position: absolute; font-size: 120px; }
+    .bg-poker-suits span:nth-child(1) { top: 5%; left: 8%; }
+    .bg-poker-suits span:nth-child(2) { top: 25%; right: 10%; }
+    .bg-poker-suits span:nth-child(3) { bottom: 18%; left: 15%; }
+    .bg-poker-suits span:nth-child(4) { bottom: 8%; right: 18%; }
+
+    .glass { background: rgba(11,34,58,0.75); backdrop-filter: blur(16px); }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.35); border-radius: 99px; }
+  </style>
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="antialiased">
+  <div class="bg-poker-suits"><span>♠</span><span>♥</span><span>♣</span><span>♦</span></div>
+  <div id="root" class="relative z-10"></div>
+
+  <script type="text/babel">
+    // This page embeds the component from react_admin_panel_example/components/AdminLivePeek.jsx
+    // in a file:// friendly way (React UMD + Babel).
+
+    const { useEffect, useMemo, useRef, useState } = React;
+
+    function useRoyalSession() {
+      const [session, setSession] = useState(() => {
+        const parentState = window.parent && window.parent.APP_STATE ? window.parent.APP_STATE : null;
+        return {
+          role: parentState?.role || parentState?.activeRole || 'guest',
+          username: parentState?.user?.username || 'Anonymous',
+        };
+      });
+
+      useEffect(() => {
+        function onMsg(ev) {
+          if (!ev?.data || ev.data.type !== 'ROYAL_SESSION') return;
+          setSession({ role: ev.data.role || 'guest', username: ev.data.username || 'Anonymous' });
+        }
+        window.addEventListener('message', onMsg);
+        return () => window.removeEventListener('message', onMsg);
+      }, []);
+
+      return session;
+    }
+
+    function badgeFor(status) {
+      const base = "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded border";
+      if (status === 'CRITICAL') return `${base} bg-rcRed/15 text-rcRed border-rcRed/30`;
+      if (status === 'DEGRADED') return `${base} bg-rcGold/15 text-rcGold border-rcGold/30`;
+      return `${base} bg-rcGreen/15 text-rcGreen border-rcGreen/30`;
+    }
+
+    function AdminLivePeek() {
+      const session = useRoyalSession();
+      const allowed = ['admin','root','support','cfo'].includes(session.role);
+
+      const [feed, setFeed] = useState(() => {
+        return [
+          { ts: new Date().toISOString(), kind: 'SYS', msg: 'God View online. Listening for events…' },
+          { ts: new Date().toISOString(), kind: 'SOCKET', msg: 'WS: mock://royal-internal (simulated)' },
+        ];
+      });
+
+      const [tables, setTables] = useState(() => ([
+        { id: 'T-ALPHA', name: 'Alpha High-Roller', stake: '50/100', players: 5, status: 'RUNNING' },
+        { id: 'T-BRAVO', name: 'Bravo Turbo', stake: '10/20', players: 8, status: 'RUNNING' },
+        { id: 'T-CHARLIE', name: 'Charlie Casual', stake: '1/2', players: 2, status: 'WAITING' },
+      ]));
+
+      const [health, setHealth] = useState(() => ({
+        auth: 'OK',
+        treasury: 'OK',
+        sockets: 'OK',
+        nowpayments: 'DEGRADED',
+        storage: 'OK'
+      }));
+
+      const feedRef = useRef(null);
+      useEffect(() => {
+        if (!feedRef.current) return;
+        feedRef.current.scrollTop = feedRef.current.scrollHeight;
+      }, [feed]);
+
+      useEffect(() => {
+        if (!allowed) return;
+        const t = setInterval(() => {
+          // Pull cross-module signals from parent (chat + withdrawals)
+          let pendingW = 0;
+          try {
+            const store = window.parent?.ROYAL_STORE;
+            const w = store?.loadWithdrawals?.() || [];
+            pendingW = w.filter(x => (x.status || 'Pending') === 'Pending').length;
+          } catch(e) {}
+
+          setFeed(prev => {
+            const entry = {
+              ts: new Date().toISOString(),
+              kind: 'EVENT',
+              msg: pendingW ? `Treasury: ${pendingW} pending withdrawal request(s) in queue.` : 'Treasury: no pending withdrawals.'
+            };
+            const next = [...prev, entry].slice(-80);
+            return next;
+          });
+
+          // slight table motion
+          setTables(prev => prev.map(t => ({ ...t, players: Math.max(0, Math.min(9, t.players + (Math.random() > 0.7 ? (Math.random() > 0.5 ? 1 : -1) : 0))) })));
+
+          // mock flaps
+          setHealth(h => ({ ...h, nowpayments: Math.random() > 0.92 ? 'CRITICAL' : (Math.random() > 0.75 ? 'DEGRADED' : 'OK') }));
+        }, 1800);
+        return () => clearInterval(t);
+      }, [allowed]);
+
+      if (!allowed) {
+        return (
+          <div className="min-h-screen flex items-center justify-center p-8">
+            <div className="glass border border-rcRed/30 rounded-2xl p-8 max-w-lg w-full text-center shadow-[0_0_40px_rgba(0,0,0,0.55)]">
+              <div className="text-5xl mb-4">🚫</div>
+              <div className="text-rcRed font-black uppercase tracking-widest">No Clearance</div>
+              <p className="text-rcSlateLight text-sm mt-3">Switch to Admin / Root / Support / CFO in the DEV toolbar to view this module.</p>
+              <div className="mt-5 text-[10px] text-rcSlateLight font-mono">Viewer: <span className="text-white">@{session.username}</span> (<span className="text-rcGold">{session.role}</span>)</div>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen p-6 md:p-10">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
+            <div>
+              <div className="text-rcGold text-[10px] font-black uppercase tracking-widest">react_admin_panel_example</div>
+              <h1 className="text-white text-3xl font-black uppercase tracking-widest drop-shadow-md">Admin Live Peek</h1>
+              <div className="text-rcSlateLight text-xs font-mono uppercase tracking-widest mt-1">Viewer: <span className="text-white">@{session.username}</span> / <span className="text-rcGold">{session.role}</span></div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[8px] text-rcSlate uppercase tracking-widest">Socket</span>
+              <span className="text-[8px] bg-rcGreen/15 text-rcGreen border border-rcGreen/30 px-2 py-0.5 rounded uppercase font-black tracking-widest">CONNECTED</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="glass border border-rcNavyBorder rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.35)]">
+              <div className="p-4 border-b border-rcNavyBorder flex items-center justify-between">
+                <div className="text-rcGold text-[10px] font-black uppercase tracking-widest">Live Event Feed</div>
+                <div className="text-[8px] text-rcSlateLight font-mono">last 80</div>
+              </div>
+              <div ref={feedRef} className="h-[420px] overflow-y-auto custom-scrollbar p-4 space-y-2">
+                {feed.map((e, idx) => (
+                  <div key={idx} className="bg-rcNavyBase/60 border border-rcNavyBorder rounded-xl p-3">
+                    <div className="flex items-end justify-between gap-3">
+                      <div className="text-[8px] uppercase tracking-widest font-black text-rcGold">{e.kind}</div>
+                      <div className="text-[8px] text-rcSlateLight font-mono">{new Date(e.ts).toLocaleTimeString()}</div>
+                    </div>
+                    <div className="text-rcSlateLight text-[10px] mt-1 leading-relaxed">{e.msg}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="glass border border-rcNavyBorder rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.35)]">
+              <div className="p-4 border-b border-rcNavyBorder flex items-center justify-between">
+                <div className="text-rcGold text-[10px] font-black uppercase tracking-widest">Active Poker Tables</div>
+                <div className="text-[8px] text-rcSlateLight font-mono">simulated</div>
+              </div>
+              <div className="p-4 space-y-3">
+                {tables.map(t => (
+                  <div key={t.id} className="bg-rcNavyBase/60 border border-rcNavyBorder rounded-xl p-4 flex items-center justify-between">
+                    <div>
+                      <div className="text-white text-sm font-bold">{t.name}</div>
+                      <div className="text-[9px] text-rcSlateLight font-mono">{t.id} • stakes {t.stake}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-rcGold text-sm font-black">{t.players}/9</div>
+                      <div className={`text-[8px] font-black uppercase tracking-widest ${t.status==='RUNNING' ? 'text-rcGreen' : 'text-rcSlateLight'}`}>{t.status}</div>
+                    </div>
+                  </div>
+                ))}
+                <div className="text-[9px] text-rcSlateLight font-mono mt-2">
+                  Tip: switch roles in DEV toolbar while this view is open — it stays embedded in the mockup.
+                </div>
+              </div>
+            </div>
+
+            <div className="glass border border-rcNavyBorder rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.35)]">
+              <div className="p-4 border-b border-rcNavyBorder flex items-center justify-between">
+                <div className="text-rcGold text-[10px] font-black uppercase tracking-widest">System Health</div>
+                <div className="text-[8px] text-rcSlateLight font-mono">ops</div>
+              </div>
+              <div className="p-4 space-y-3">
+                {Object.entries(health).map(([k,v]) => (
+                  <div key={k} className="flex items-center justify-between bg-rcNavyBase/60 border border-rcNavyBorder rounded-xl p-3">
+                    <div className="text-[10px] text-white font-bold uppercase tracking-widest">{k}</div>
+                    <div className={badgeFor(v)}>{v}</div>
+                  </div>
+                ))}
+
+                <div className="bg-rcNavyBase/60 border border-rcGold/20 rounded-xl p-4">
+                  <div className="text-[10px] text-rcGold font-black uppercase tracking-widest">Cross-module checks</div>
+                  <ul className="mt-2 space-y-1 text-[10px] text-rcSlateLight">
+                    <li>• Reads parent APP_STATE (role, user)</li>
+                    <li>• Reads pending withdrawals via ROYAL_STORE</li>
+                    <li>• Styling aligned to poker table theme</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<AdminLivePeek />);
+  </script>
+</body>
+</html>
